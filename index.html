@@ -505,6 +505,27 @@
       animation: flagWave 2.3s ease-in-out infinite;
     }
 
+    .marquee-flag {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      transform-origin: 12% 50%;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.36));
+      animation: flagWave 2.3s ease-in-out infinite;
+    }
+
+    .marquee-flag img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 2px;
+    }
+
     @keyframes flagWave {
       0%,
       100% {
@@ -1921,7 +1942,7 @@
 
     function renderMarquee() {
       const chips = state.teams.map((team) => `
-        <span class="flag-chip"><span class="flag-emoji">${team.flag}</span>${escapeHtml(team.abbr)} · ${escapeHtml(team.name)}</span>
+        <span class="flag-chip"><span class="marquee-flag"><img src="${escapeHtml(team.logo)}" alt="${escapeHtml(team.name)} flag"></span>${escapeHtml(team.abbr)} · ${escapeHtml(team.name)}</span>
       `).join("");
       els.flagTrack.innerHTML = chips + chips;
       if (window.gsap && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
