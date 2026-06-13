@@ -635,23 +635,80 @@
       background: rgba(255, 255, 255, 0.055);
     }
 
-    .fixture-item strong,
-    .fixture-item span {
+    .fixture-main {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .fixture-matchup {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .fixture-team {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      color: var(--ink);
+      font-size: 0.86rem;
+      font-weight: 900;
+    }
+
+    .fixture-team:last-child {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .fixture-team span {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .fixture-item strong {
-      display: block;
-      font-size: 0.92rem;
+    .fixture-team img,
+    .team-flag-fallback {
+      flex: 0 0 auto;
+      width: 30px;
+      height: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.1);
+      object-fit: contain;
+      padding: 2px;
     }
 
-    .fixture-item span {
-      display: block;
-      margin-top: 3px;
+    .team-flag-fallback {
+      display: inline-grid;
+      place-items: center;
+      color: var(--lime);
+      font-size: 0.64rem;
+      font-weight: 950;
+    }
+
+    .fixture-vs {
+      color: var(--lime);
+      font-size: 0.72rem;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .fixture-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
       color: var(--muted);
       font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .fixture-stage {
+      color: var(--sky);
+      text-transform: uppercase;
     }
 
     .score-pill {
@@ -711,6 +768,97 @@
       margin-bottom: 18px;
       color: rgba(246, 248, 255, 0.74);
       line-height: 1.55;
+    }
+
+    .spotlight-inner.matchup-spotlight {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .matchup-copy {
+      position: relative;
+      display: grid;
+      gap: 16px;
+      align-content: center;
+      min-height: 100%;
+    }
+
+    .matchup-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: clamp(12px, 3vw, 28px);
+      margin-top: 2px;
+    }
+
+    .matchup-team {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .matchup-team img,
+    .matchup-flag-fallback {
+      width: min(118px, 30vw);
+      aspect-ratio: 4 / 3;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      object-fit: contain;
+      padding: 10px;
+      filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.32));
+    }
+
+    .matchup-flag-fallback {
+      display: grid;
+      place-items: center;
+      color: var(--lime);
+      font-size: clamp(1.1rem, 3vw, 1.8rem);
+      font-weight: 950;
+    }
+
+    .matchup-team span {
+      max-width: 100%;
+      color: var(--ink);
+      font-size: clamp(1.05rem, 2.1vw, 1.9rem);
+      font-weight: 950;
+      line-height: 1;
+      text-align: center;
+      text-transform: uppercase;
+      overflow-wrap: anywhere;
+    }
+
+    .matchup-versus {
+      display: grid;
+      place-items: center;
+      width: clamp(46px, 7vw, 72px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      background: rgba(188, 255, 79, 0.12);
+      color: var(--lime);
+      font-size: clamp(0.82rem, 1.5vw, 1rem);
+      font-weight: 950;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 28px rgba(188, 255, 79, 0.08);
+    }
+
+    .matchup-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .matchup-meta span {
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.18);
+      color: rgba(246, 248, 255, 0.78);
+      font-size: 0.78rem;
+      font-weight: 900;
     }
 
     .spotlight-logo {
@@ -1469,6 +1617,21 @@
         grid-template-columns: 1fr;
       }
 
+      .fixture-matchup,
+      .matchup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .fixture-team:last-child {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .fixture-vs,
+      .matchup-versus {
+        justify-self: start;
+      }
+
       .match-time,
       .score-pill,
       .player-age {
@@ -1532,7 +1695,7 @@
           </div>
           <div class="source-line">
             <span id="heroSync">Syncing live feeds...</span>
-            <span>Data from <a href="https://site.web.api.espn.com/apis/v2/sports/soccer/fifa.world/standings?season=2026" target="_blank" rel="noreferrer">ESPN standings</a> and <a href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/teams" target="_blank" rel="noreferrer">FIFA team hub</a>.</span>
+            <span>Data from <a href="https://site.web.api.espn.com/apis/v2/sports/soccer/fifa.world/standings?season=2026" target="_blank" rel="noreferrer">ESPN standings</a>, <a href="https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719" target="_blank" rel="noreferrer">ESPN scoreboard</a>, and <a href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/teams" target="_blank" rel="noreferrer">FIFA team hub</a>.</span>
           </div>
         </div>
 
@@ -1588,7 +1751,7 @@
             <div id="fixtureList" class="fixture-list"></div>
           </aside>
 
-          <article id="spotlightBoard" class="spotlight-board" aria-label="Team spotlight"></article>
+          <article id="spotlightBoard" class="spotlight-board" aria-label="Next match spotlight"></article>
         </div>
 
         <div id="groupGrid" class="group-grid" aria-label="World Cup groups"></div>
@@ -1865,12 +2028,127 @@
       return { groups, teams: groups.flatMap((group) => group.teams) };
     }
 
+    function normalizeNameKey(value) {
+      return String(value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function findTeamIdentity({ id, name, abbr } = {}) {
+      const idText = String(id || "");
+      const abbrText = String(abbr || "").toUpperCase();
+      const nameKey = normalizeNameKey(name);
+      return state.teams.find((team) => idText && String(team.id) === idText)
+        || state.teams.find((team) => abbrText && String(team.abbr).toUpperCase() === abbrText)
+        || state.teams.find((team) => nameKey && normalizeNameKey(team.name) === nameKey)
+        || state.teams.find((team) => {
+          const teamKey = normalizeNameKey(team.name);
+          return nameKey && teamKey && (teamKey.includes(nameKey) || nameKey.includes(teamKey));
+        });
+    }
+
+    function makeFixtureTeam({ id, name, abbr, logo } = {}) {
+      const match = findTeamIdentity({ id, name, abbr });
+      const displayName = name || match?.name || "TBD";
+      return {
+        id: id || match?.id || "",
+        name: displayName,
+        abbr: abbr || match?.abbr || displayName.slice(0, 3).toUpperCase(),
+        logo: logo || match?.logo || "",
+        accent: match?.accent || "var(--lime)"
+      };
+    }
+
+    function teamFromCompetitor(competitor) {
+      const team = competitor?.team || {};
+      return makeFixtureTeam({
+        id: team.id,
+        name: team.displayName || team.name || team.shortDisplayName,
+        abbr: team.abbreviation,
+        logo: team.logo || team.logos?.[0]?.href || ""
+      });
+    }
+
+    function stageFromDate(dateString) {
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return "Group Stage";
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(date);
+      const getPart = (type) => parts.find((part) => part.type === type)?.value || "01";
+      const dateKey = `${getPart("year")}-${getPart("month")}-${getPart("day")}`;
+      if (dateKey <= "2026-06-27") return "Group Stage";
+      if (dateKey <= "2026-07-03") return "Round of 32";
+      if (dateKey <= "2026-07-07") return "Round of 16";
+      if (dateKey <= "2026-07-11") return "Quarterfinal";
+      if (dateKey <= "2026-07-15") return "Semifinal";
+      if (dateKey === "2026-07-18") return "Third-place Playoff";
+      if (dateKey >= "2026-07-19") return "Final";
+      return "Knockout Stage";
+    }
+
+    function deriveStage(event = {}, competition = {}) {
+      const noteText = (competition.notes || [])
+        .map((note) => [note.headline, note.type, note.text].filter(Boolean).join(" "))
+        .join(" ");
+      const text = [
+        event.season?.type?.name,
+        event.week?.text,
+        event.group?.name,
+        competition.group?.name,
+        competition.phase,
+        noteText,
+        event.name,
+        event.shortName
+      ].filter(Boolean).join(" ");
+      const stageMatchers = [
+        [/third[-\s]?place|bronze/i, "Third-place Playoff"],
+        [/semi[-\s]?final/i, "Semifinal"],
+        [/quarter[-\s]?final/i, "Quarterfinal"],
+        [/round\s*of\s*32/i, "Round of 32"],
+        [/round\s*of\s*16/i, "Round of 16"],
+        [/\bfinal\b/i, "Final"],
+        [/\bgroup\b/i, "Group Stage"]
+      ];
+      const matched = stageMatchers.find(([pattern]) => pattern.test(text));
+      return matched ? matched[1] : stageFromDate(event.date);
+    }
+
+    function buildMatchupName(awayTeam, homeTeam) {
+      return `${awayTeam?.name || "TBD"} vs ${homeTeam?.name || "TBD"}`;
+    }
+
+    function normalizeFallbackFixture(fixture) {
+      const [awayName = fixture.away || "", homeName = fixture.home || ""] = String(fixture.name || "").split(" at ");
+      const awayTeam = makeFixtureTeam({ name: awayName, abbr: fixture.shortName?.split(" @ ")?.[0] });
+      const homeTeam = makeFixtureTeam({ name: homeName, abbr: fixture.shortName?.split(" @ ")?.[1] });
+      return {
+        ...fixture,
+        state: fixture.state || "pre",
+        completed: Boolean(fixture.completed),
+        score: fixture.score || "",
+        stage: fixture.stage || stageFromDate(fixture.date),
+        home: homeTeam.name,
+        away: awayTeam.name,
+        homeTeam,
+        awayTeam,
+        matchupName: buildMatchupName(awayTeam, homeTeam)
+      };
+    }
+
     function normalizeFixtures(payload) {
       return (payload.events || []).map((event) => {
-        const competition = event.competitions?.[0];
-        const competitors = competition?.competitors || [];
+        const competition = event.competitions?.[0] || {};
+        const competitors = competition.competitors || [];
         const home = competitors.find((item) => item.homeAway === "home");
         const away = competitors.find((item) => item.homeAway === "away");
+        const homeTeam = teamFromCompetitor(home);
+        const awayTeam = teamFromCompetitor(away);
         const homeScore = home?.score ?? "";
         const awayScore = away?.score ?? "";
         const gameState = event.status?.type?.state || "pre";
@@ -1879,14 +2157,18 @@
           name: event.name,
           shortName: event.shortName || event.name,
           date: event.date,
+          stage: deriveStage(event, competition),
           status: event.status?.type?.description || "Scheduled",
           detail: event.status?.type?.detail || "",
           shortDetail: event.status?.type?.shortDetail || "",
           state: gameState,
           completed: Boolean(event.status?.type?.completed),
           score: gameState !== "pre" && homeScore !== "" && awayScore !== "" ? `${awayScore} - ${homeScore}` : "",
-          home: home?.team?.displayName || "",
-          away: away?.team?.displayName || ""
+          home: homeTeam.name,
+          away: awayTeam.name,
+          homeTeam,
+          awayTeam,
+          matchupName: buildMatchupName(awayTeam, homeTeam)
         };
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
     }
@@ -1914,7 +2196,7 @@
         const fallback = buildFallbackGroups();
         state.groups = fallback.groups;
         state.teams = fallback.teams;
-        state.fixtures = fallbackFixtures;
+        state.fixtures = fallbackFixtures.map(normalizeFallbackFixture);
         state.loadedAt = new Date();
         state.usingFallback = true;
         console.warn("Using fallback World Cup data:", error);
@@ -1933,7 +2215,7 @@
       setSync(syncText);
       renderMarquee();
       renderFixtures();
-      renderSpotlight(state.selectedTeam || state.teams[0]);
+      renderMatchSpotlight(getNextFixture());
       renderGroups();
       renderFilters();
       renderTeams();
@@ -1953,7 +2235,37 @@
 
     function getNextFixture() {
       const now = Date.now();
-      return state.fixtures.find((fixture) => !fixture.completed && new Date(fixture.date).getTime() >= now) || state.fixtures[0];
+      return state.fixtures.find((fixture) => fixture.state === "in" && !fixture.completed)
+        || state.fixtures.find((fixture) => !fixture.completed && new Date(fixture.date).getTime() >= now)
+        || state.fixtures.find((fixture) => !fixture.completed)
+        || state.fixtures[0];
+    }
+
+    function getFixtureTimeText(fixture) {
+      return fixture?.detail || fixture?.shortDetail || formatDate(fixture?.date);
+    }
+
+    function renderFixtureTeam(team = {}) {
+      const name = team.name || "TBD";
+      const abbr = team.abbr || name.slice(0, 3).toUpperCase();
+      const flag = team.logo
+        ? `<img src="${escapeHtml(team.logo)}" alt="${escapeHtml(name)} flag">`
+        : `<span class="team-flag-fallback" aria-hidden="true">${escapeHtml(abbr)}</span>`;
+      return `<span class="fixture-team">${flag}<span>${escapeHtml(name)}</span></span>`;
+    }
+
+    function renderMatchupTeam(team = {}) {
+      const name = team.name || "TBD";
+      const abbr = team.abbr || name.slice(0, 3).toUpperCase();
+      const flag = team.logo
+        ? `<img src="${escapeHtml(team.logo)}" alt="${escapeHtml(name)} flag">`
+        : `<span class="matchup-flag-fallback" aria-hidden="true">${escapeHtml(abbr)}</span>`;
+      return `
+        <div class="matchup-team">
+          ${flag}
+          <span>${escapeHtml(name)}</span>
+        </div>
+      `;
     }
 
     function renderFixtures() {
@@ -1964,22 +2276,30 @@
         els.nextStatus.textContent = next.status;
         els.nextFixture.innerHTML = `
           <div class="match-teams">
-            <strong>${escapeHtml(next.shortName || next.name)}</strong>
-            <small>${escapeHtml(next.detail || formatDate(next.date))}</small>
+            <strong>${escapeHtml(next.matchupName || next.shortName || next.name)}</strong>
+            <small>${escapeHtml(next.stage || "Group Stage")} &middot; ${escapeHtml(getFixtureTimeText(next))}</small>
           </div>
           <div class="match-time">${escapeHtml(next.score || formatTime(next.date))}</div>
         `;
       }
 
-      const upcoming = state.fixtures
-        .filter((fixture) => !fixture.completed || fixture.state === "in")
+      const radarFixtures = state.fixtures
+        .filter((fixture) => fixture.state === "in" || !fixture.completed)
         .slice(0, 7);
+      const visibleFixtures = radarFixtures.length ? radarFixtures : state.fixtures.slice(0, 7);
 
-      els.fixtureList.innerHTML = upcoming.map((fixture) => `
+      els.fixtureList.innerHTML = visibleFixtures.map((fixture) => `
         <article class="fixture-item">
-          <div>
-            <strong>${escapeHtml(fixture.shortName || fixture.name)}</strong>
-            <span>${escapeHtml(fixture.detail || formatDate(fixture.date))}</span>
+          <div class="fixture-main">
+            <div class="fixture-matchup">
+              ${renderFixtureTeam(fixture.awayTeam)}
+              <span class="fixture-vs">vs</span>
+              ${renderFixtureTeam(fixture.homeTeam)}
+            </div>
+            <div class="fixture-meta">
+              <span class="fixture-stage">${escapeHtml(fixture.stage || "Group Stage")}</span>
+              <span class="fixture-time">${escapeHtml(getFixtureTimeText(fixture))}</span>
+            </div>
           </div>
           <div class="score-pill">${escapeHtml(fixture.score || fixture.status)}</div>
         </article>
@@ -1988,25 +2308,29 @@
       updateCountdown();
     }
 
-    function renderSpotlight(team) {
-      if (!team) return;
-      state.selectedTeam = team;
-      els.spotlightBoard.style.setProperty("--panel-accent", team.accent);
+    function renderMatchSpotlight(fixture) {
+      if (!fixture) return;
+      const stage = fixture.stage || "Group Stage";
+      const timeText = getFixtureTimeText(fixture);
+      const statusText = fixture.score || fixture.status || "Scheduled";
+      const accent = fixture.homeTeam?.accent || fixture.awayTeam?.accent || "var(--lime)";
+      els.spotlightBoard.style.setProperty("--panel-accent", accent);
       els.spotlightBoard.innerHTML = `
-        <div class="spotlight-inner">
-          <div>
-            <span class="spotlight-kicker">${escapeHtml(team.group)} · ${escapeHtml(team.abbr)}</span>
-            <h3>${escapeHtml(team.name)}</h3>
-            <p>${team.flag} Current group rank ${escapeHtml(team.rank || "1")} with ${escapeHtml(team.pts)} points. Open the squad panel for the latest roster and position lanes.</p>
-            <button class="primary-cta" type="button" data-open-team="${escapeHtml(team.id)}">Open lineup</button>
-            <div class="quick-stats">
-              <div><b>${escapeHtml(team.pts)}</b><span>Pts</span></div>
-              <div><b>${escapeHtml(team.record)}</b><span>Record</span></div>
-              <div><b>${escapeHtml(team.gf)}</b><span>GF</span></div>
-              <div><b>${escapeHtml(team.ga)}</b><span>GA</span></div>
+        <div class="spotlight-inner matchup-spotlight">
+          <div class="matchup-copy">
+            <span class="spotlight-kicker">Next fixture &middot; ${escapeHtml(stage)}</span>
+            <h3>${escapeHtml(fixture.matchupName || fixture.shortName || fixture.name)}</h3>
+            <div class="matchup-grid" aria-label="${escapeHtml(fixture.matchupName || fixture.name)}">
+              ${renderMatchupTeam(fixture.awayTeam)}
+              <span class="matchup-versus">vs</span>
+              ${renderMatchupTeam(fixture.homeTeam)}
+            </div>
+            <div class="matchup-meta">
+              <span>${escapeHtml(stage)}</span>
+              <span>${escapeHtml(timeText)}</span>
+              <span>${escapeHtml(statusText)}</span>
             </div>
           </div>
-          <div class="spotlight-logo"><img src="${escapeHtml(team.logo)}" alt="${escapeHtml(team.name)} logo"></div>
         </div>
       `;
     }
@@ -2084,7 +2408,6 @@
       const team = state.teams.find((item) => String(item.id) === String(teamId));
       if (!team) return;
       state.selectedTeam = team;
-      renderSpotlight(team);
       els.teamPanel.style.setProperty("--panel-accent", team.accent);
       els.teamPanel.classList.add("is-open");
       els.panelScrim.classList.add("is-open");
