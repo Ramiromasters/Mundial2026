@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>World Cup 2026 Dream Index</title>
   <meta name="description" content="A live, animated 2026 World Cup landing page with standings, fixtures, team flags, and current squad feeds.">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <style>
     :root {
       color-scheme: dark;
@@ -1792,6 +1795,9 @@
     const STANDINGS_URL = "https://site.web.api.espn.com/apis/v2/sports/soccer/fifa.world/standings?season=2026";
     const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719";
     const rosterUrl = (id) => `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams/${id}/roster`;
+    const DATA_CACHE_WINDOW_MS = 30000;
+    const LIVE_REFRESH_MS = 60000;
+    const ROSTER_CACHE_MS = 300000;
 
     const palette = ["#24e8ff", "#ff3f9b", "#bcff4f", "#ffd166", "#ff7a38", "#9b72ff", "#19d98b", "#ff4d5b", "#4bd0ff", "#f8ef62", "#ff66e0", "#7dffca"];
 
@@ -1915,7 +1921,8 @@
       rosterCache: new Map(),
       selectedTeam: null,
       usingFallback: false,
-      loadedAt: null
+      loadedAt: null,
+      isLoading: false
     };
 
     const els = {
@@ -2162,19 +2169,66 @@
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
-    async function fetchJson(url) {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
+    function cacheBustedUrl(url, force = false) {
+      const target = new URL(url, window.location.href);
+      const token = force
+        ? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        : String(Math.floor(Date.now() / DATA_CACHE_WINDOW_MS));
+      target.searchParams.set("_wc26", token);
+      return target.toString();
     }
 
-    async function loadData() {
-      setSync("Syncing live feeds...");
+    async function fetchJson(url, options = {}) {
+      const attempts = [
+        cacheBustedUrl(url, options.force),
+        ...(options.force ? [cacheBustedUrl(url, true)] : []),
+        url
+      ];
+      let lastError;
+      for (const [index, attemptUrl] of attempts.entries()) {
+        try {
+          const response = await fetch(attemptUrl, { cache: "no-store" });
+          if (response.ok) return response.json();
+          lastError = new Error(`HTTP ${response.status}`);
+        } catch (error) {
+          lastError = error;
+        }
+        if (index < attempts.length - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 350));
+        }
+      }
+      throw lastError;
+    }
+
+    async function clearStalePageCaches() {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations
+            .filter((registration) => registration.scope.includes("/Mundial2026/"))
+            .map((registration) => registration.unregister()));
+        }
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys
+            .filter((key) => /mundial|world.?cup|cupos|wc26/i.test(key))
+            .map((key) => caches.delete(key)));
+        }
+      } catch (error) {
+        console.warn("Cache cleanup skipped:", error);
+      }
+    }
+
+    async function loadData(options = {}) {
+      if (state.isLoading) return;
+      state.isLoading = true;
+      setSync(options.silent ? "Refreshing live feeds..." : "Syncing live feeds...");
       state.usingFallback = false;
+      if (options.force) state.rosterCache.clear();
       try {
         const [standings, scoreboard] = await Promise.all([
-          fetchJson(STANDINGS_URL),
-          fetchJson(SCOREBOARD_URL)
+          fetchJson(STANDINGS_URL, options),
+          fetchJson(SCOREBOARD_URL, options)
         ]);
         const normalized = normalizeStandings(standings);
         state.groups = normalized.groups;
@@ -2190,6 +2244,7 @@
         state.usingFallback = true;
         console.warn("Using fallback World Cup data:", error);
       }
+      state.isLoading = false;
       renderAll();
     }
 
@@ -2448,8 +2503,9 @@
     }
 
     async function getRoster(team) {
-      if (state.rosterCache.has(team.id)) return state.rosterCache.get(team.id);
-      const data = await fetchJson(rosterUrl(team.id));
+      const cached = state.rosterCache.get(team.id);
+      if (cached && Date.now() - cached.loadedAt < ROSTER_CACHE_MS) return cached.athletes;
+      const data = await fetchJson(rosterUrl(team.id), { force: !cached });
       const athletes = (data.athletes || []).map((athlete) => ({
         id: athlete.id,
         name: athlete.displayName || athlete.fullName || "Player",
@@ -2459,7 +2515,7 @@
         position: athlete.position?.displayName || athlete.position?.name || "Squad",
         posAbbr: athlete.position?.abbreviation || "S"
       }));
-      state.rosterCache.set(team.id, athletes);
+      state.rosterCache.set(team.id, { loadedAt: Date.now(), athletes });
       return athletes;
     }
 
@@ -2573,11 +2629,17 @@
         state.query = event.target.value;
         renderTeams();
       });
-      els.refreshButton.addEventListener("click", loadData);
+      els.refreshButton.addEventListener("click", () => loadData({ force: true }));
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") closeTeamPanel();
       });
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) loadData({ force: true, silent: true });
+      });
       window.setInterval(updateCountdown, 1000);
+      window.setInterval(() => {
+        if (!document.hidden) loadData({ force: true, silent: true });
+      }, LIVE_REFRESH_MS);
     }
 
     function setupGlobe() {
@@ -2774,7 +2836,7 @@
 
     setupEvents();
     setupGlobe();
-    loadData();
+    clearStalePageCaches().finally(() => loadData({ force: true }));
   </script>
 </body>
 </html>
