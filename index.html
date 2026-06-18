@@ -1922,7 +1922,8 @@
       selectedTeam: null,
       usingFallback: false,
       loadedAt: null,
-      isLoading: false
+      isLoading: false,
+      legacyHashRedirect: false
     };
 
     const els = {
@@ -2201,6 +2202,7 @@
     }
 
     async function clearStalePageCaches() {
+      if (!/^https?:$/.test(window.location.protocol)) return;
       try {
         if ("serviceWorker" in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
@@ -2216,6 +2218,16 @@
         }
       } catch (error) {
         console.warn("Cache cleanup skipped:", error);
+      }
+    }
+
+    function normalizeLegacyHash() {
+      if (window.location.hash.toLowerCase() !== "#lineups") return;
+      state.legacyHashRedirect = true;
+      try {
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#teams`);
+      } catch (error) {
+        window.location.hash = "teams";
       }
     }
 
@@ -2264,6 +2276,12 @@
       renderFilters();
       renderTeams();
       animateContent();
+      if (state.legacyHashRedirect) {
+        state.legacyHashRedirect = false;
+        window.requestAnimationFrame(() => {
+          document.getElementById("teams")?.scrollIntoView({ block: "start" });
+        });
+      }
     }
 
     function renderMarquee() {
@@ -2836,6 +2854,8 @@
 
     setupEvents();
     setupGlobe();
+    normalizeLegacyHash();
+    window.addEventListener("hashchange", normalizeLegacyHash);
     clearStalePageCaches().finally(() => loadData({ force: true }));
   </script>
 </body>
