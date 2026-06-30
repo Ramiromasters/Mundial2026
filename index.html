@@ -999,6 +999,34 @@
       text-align: left;
     }
 
+    .standing-table tr.is-eliminated td {
+      color: rgba(246, 248, 255, 0.46);
+    }
+
+    .standing-table tr.is-eliminated button {
+      color: rgba(246, 248, 255, 0.58);
+    }
+
+    .standing-team-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .elimination-mark {
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      border: 1px solid rgba(255, 77, 91, 0.35);
+      border-radius: 999px;
+      background: rgba(255, 77, 91, 0.12);
+      color: #ffdce0;
+      font-size: 0.82rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 12px rgba(255, 77, 91, 0.2));
+    }
+
     .standing-table img {
       width: 20px;
       height: 20px;
@@ -1765,7 +1793,7 @@
             <p class="eyebrow">48 animated flags</p>
             <h2>Team Atlas</h2>
           </div>
-          <p>Search, filter by group, and open any nation to load its current squad sheet from the live roster endpoint.</p>
+          <p>Search the remaining nations, filter by group, and open any active team to load its current squad sheet from the live roster endpoint.</p>
         </div>
 
         <div class="team-tools">
@@ -1923,7 +1951,8 @@
       usingFallback: false,
       loadedAt: null,
       isLoading: false,
-      legacyHashRedirect: false
+      legacyHashRedirect: false,
+      eliminatedTeamKeys: new Set()
     };
 
     const els = {
@@ -1960,6 +1989,28 @@
         acc[stat.name] = stat.displayValue ?? stat.value ?? "0";
         return acc;
       }, {});
+    }
+
+    function numericValue(value) {
+      const normalized = String(value ?? "0").replace(/[^\d+.-]/g, "");
+      const number = Number(normalized);
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function teamKeys(team = {}) {
+      const keys = [];
+      if (team.id) keys.push(`id:${String(team.id)}`);
+      if (team.name) keys.push(`name:${normalizeNameKey(team.name)}`);
+      if (team.abbr) keys.push(`abbr:${String(team.abbr).toUpperCase()}`);
+      return keys;
+    }
+
+    function markEliminated(eliminated, team) {
+      teamKeys(team).forEach((key) => eliminated.add(key));
+    }
+
+    function teamIsEliminated(team, eliminated = state.eliminatedTeamKeys) {
+      return teamKeys(team).some((key) => eliminated.has(key));
     }
 
     function decorateTeam(team, index = 0) {
@@ -2165,9 +2216,63 @@
           away: awayTeam.name,
           homeTeam,
           awayTeam,
+          competitors: competitors.map((competitor) => ({
+            team: teamFromCompetitor(competitor),
+            winner: competitor.winner === true,
+            score: competitor.score ?? ""
+          })),
           matchupName: buildMatchupName(awayTeam, homeTeam)
         };
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
+    function thirdPlaceSort(a, b) {
+      return numericValue(b.pts) - numericValue(a.pts)
+        || numericValue(b.gd) - numericValue(a.gd)
+        || numericValue(b.gf) - numericValue(a.gf)
+        || String(a.name).localeCompare(String(b.name));
+    }
+
+    function deriveEliminatedTeams(groups = [], fixtures = []) {
+      const eliminated = new Set();
+      const groupsComplete = groups.length > 0
+        && groups.every((group) => group.teams.length === 4 && group.teams.every((team) => numericValue(team.gp) >= 3));
+
+      if (groupsComplete) {
+        const thirdPlaceTeams = [];
+        groups.forEach((group) => {
+          group.teams.forEach((team) => {
+            if (Number(team.rank) >= 4) {
+              markEliminated(eliminated, team);
+            } else if (Number(team.rank) === 3) {
+              thirdPlaceTeams.push(team);
+            }
+          });
+        });
+        thirdPlaceTeams.sort(thirdPlaceSort).slice(8).forEach((team) => markEliminated(eliminated, team));
+      }
+
+      fixtures
+        .filter((fixture) => fixture.completed && fixture.stage !== "Group Stage")
+        .forEach((fixture) => {
+          const competitors = fixture.competitors || [];
+          if (!competitors.some((competitor) => competitor.winner)) return;
+          competitors
+            .filter((competitor) => !competitor.winner)
+            .forEach((competitor) => markEliminated(eliminated, competitor.team));
+        });
+
+      return eliminated;
+    }
+
+    function applyEliminationStatus() {
+      const eliminated = deriveEliminatedTeams(state.groups, state.fixtures);
+      state.eliminatedTeamKeys = eliminated;
+      state.groups = state.groups.map((group) => ({
+        ...group,
+        teams: group.teams.map((team) => ({ ...team, eliminated: teamIsEliminated(team, eliminated) }))
+      }));
+      state.teams = state.groups.flatMap((group) => group.teams);
     }
 
     function cacheBustedUrl(url, force = false) {
@@ -2246,12 +2351,14 @@
         state.groups = normalized.groups;
         state.teams = normalized.teams;
         state.fixtures = normalizeFixtures(scoreboard);
+        applyEliminationStatus();
         state.loadedAt = new Date();
       } catch (error) {
         const fallback = buildFallbackGroups();
         state.groups = fallback.groups;
         state.teams = fallback.teams;
         state.fixtures = fallbackFixtures.map(normalizeFallbackFixture);
+        applyEliminationStatus();
         state.loadedAt = new Date();
         state.usingFallback = true;
         console.warn("Using fallback World Cup data:", error);
@@ -2410,8 +2517,8 @@
             </thead>
             <tbody>
               ${group.teams.map((team) => `
-                <tr>
-                  <td><button type="button" data-open-team="${escapeHtml(team.id)}"><img src="${escapeHtml(team.logo)}" alt="">${escapeHtml(team.name)}</button></td>
+                <tr class="${team.eliminated ? "is-eliminated" : ""}">
+                  <td><button type="button" data-open-team="${escapeHtml(team.id)}" aria-label="Open ${escapeHtml(team.name)} lineup${team.eliminated ? " (eliminated)" : ""}"><img src="${escapeHtml(team.logo)}" alt=""><span class="standing-team-name">${escapeHtml(team.name)}</span>${team.eliminated ? `<span class="elimination-mark" title="Eliminated" aria-label="Eliminated">☠</span>` : ""}</button></td>
                   <td>${escapeHtml(team.pts)}</td>
                   <td>${escapeHtml(team.w)}-${escapeHtml(team.d)}-${escapeHtml(team.l)}</td>
                   <td>${escapeHtml(team.gf)}</td>
@@ -2435,13 +2542,14 @@
     function renderTeams() {
       const query = state.query.trim().toLowerCase();
       const filtered = state.teams.filter((team) => {
+        if (team.eliminated) return false;
         const inGroup = state.activeGroup === "All" || team.group === state.activeGroup;
         const search = [team.name, team.abbr, team.group].join(" ").toLowerCase();
         return inGroup && (!query || search.includes(query));
       });
 
       if (!filtered.length) {
-        els.teamGrid.innerHTML = `<div class="empty-state">No teams match that search.</div>`;
+        els.teamGrid.innerHTML = `<div class="empty-state">No active teams match that search.</div>`;
         return;
       }
 
