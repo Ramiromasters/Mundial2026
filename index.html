@@ -360,6 +360,13 @@
       line-height: 0.9;
     }
 
+    .metric strong.stage-value {
+      min-height: 2.45em;
+      font-size: clamp(1.32rem, 3vw, 2rem);
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
     .metric span {
       display: block;
       margin-top: 10px;
@@ -368,6 +375,55 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0;
+    }
+
+    .metric-hosts {
+      display: grid;
+      align-content: space-between;
+      gap: 12px;
+    }
+
+    .host-nations {
+      display: grid;
+      gap: 7px;
+    }
+
+    .host-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 30px;
+      padding: 6px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.055);
+      color: rgba(246, 248, 255, 0.82);
+      font-size: 0.78rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .host-chip.is-next {
+      border-color: rgba(188, 255, 79, 0.5);
+      background: rgba(188, 255, 79, 0.12);
+      color: var(--ink);
+    }
+
+    .host-chip em,
+    .host-chip i {
+      font-style: normal;
+    }
+
+    .host-ball {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      line-height: 1;
     }
 
     .next-fixture {
@@ -1750,10 +1806,10 @@
             </div>
           </div>
           <div class="metric-grid" aria-label="Tournament metrics">
-            <div class="metric"><strong>48</strong><span>Teams</span></div>
-            <div class="metric"><strong>12</strong><span>Groups</span></div>
-            <div class="metric"><strong>104</strong><span>Matches</span></div>
-            <div class="metric"><strong>3</strong><span>Host nations</span></div>
+            <div class="metric"><strong id="teamMetricValue">--/48</strong><span>Teams</span></div>
+            <div class="metric"><strong id="stageMetricValue" class="stage-value">Loading</strong><span>Stage</span></div>
+            <div class="metric"><strong id="matchMetricValue">--/104</strong><span>Matches</span></div>
+            <div class="metric metric-hosts"><div id="hostMetricValue" class="host-nations" aria-label="Host nations">Mexico · United States · Canada</div><span>Host nations</span></div>
           </div>
         </aside>
       </section>
@@ -1964,6 +2020,10 @@
       flagTrack: document.getElementById("flagTrack"),
       fixtureList: document.getElementById("fixtureList"),
       fixtureCount: document.getElementById("fixtureCount"),
+      teamMetricValue: document.getElementById("teamMetricValue"),
+      stageMetricValue: document.getElementById("stageMetricValue"),
+      matchMetricValue: document.getElementById("matchMetricValue"),
+      hostMetricValue: document.getElementById("hostMetricValue"),
       spotlightBoard: document.getElementById("spotlightBoard"),
       groupGrid: document.getElementById("groupGrid"),
       groupFilter: document.getElementById("groupFilter"),
@@ -2171,6 +2231,22 @@
       return `${awayTeam?.name || "TBD"} vs ${homeTeam?.name || "TBD"}`;
     }
 
+    function normalizeHostCountry(country = "") {
+      const text = String(country || "").trim();
+      if (/^(usa|us|united states|united states of america)$/i.test(text)) return "United States";
+      if (/^canada$/i.test(text)) return "Canada";
+      if (/^mexico|méxico$/i.test(text)) return "Mexico";
+      return text;
+    }
+
+    function fixtureVenueInfo(competition = {}) {
+      const venue = competition.venue || {};
+      return {
+        venueName: venue.fullName || "",
+        hostCountry: normalizeHostCountry(venue.address?.country || "")
+      };
+    }
+
     function normalizeFallbackFixture(fixture) {
       const [awayName = fixture.away || "", homeName = fixture.home || ""] = String(fixture.name || "").split(" at ");
       const awayTeam = makeFixtureTeam({ name: awayName, abbr: fixture.shortName?.split(" @ ")?.[0] });
@@ -2185,6 +2261,8 @@
         away: awayTeam.name,
         homeTeam,
         awayTeam,
+        venueName: fixture.venueName || "",
+        hostCountry: normalizeHostCountry(fixture.hostCountry || ""),
         matchupName: buildMatchupName(awayTeam, homeTeam)
       };
     }
@@ -2200,6 +2278,7 @@
         const homeScore = home?.score ?? "";
         const awayScore = away?.score ?? "";
         const gameState = event.status?.type?.state || "pre";
+        const venueInfo = fixtureVenueInfo(competition);
         return {
           id: event.id,
           name: event.name,
@@ -2216,6 +2295,8 @@
           away: awayTeam.name,
           homeTeam,
           awayTeam,
+          venueName: venueInfo.venueName,
+          hostCountry: venueInfo.hostCountry,
           competitors: competitors.map((competitor) => ({
             team: teamFromCompetitor(competitor),
             winner: competitor.winner === true,
@@ -2372,10 +2453,54 @@
       els.heroSync.textContent = text;
     }
 
+    function formatStageMetric(stage = "") {
+      const value = stage || "Group Stage";
+      const labels = {
+        "Quarterfinal": "Quarterfinals",
+        "Semifinal": "Semifinals"
+      };
+      return labels[value] || value;
+    }
+
+    function getCurrentStage() {
+      const next = getNextFixture();
+      if (next?.stage) return formatStageMetric(next.stage);
+      const latest = [...state.fixtures].reverse().find((fixture) => fixture.completed);
+      return formatStageMetric(latest?.stage || "Group Stage");
+    }
+
+    function renderHostNations(nextFixture) {
+      const hosts = ["Mexico", "United States", "Canada"];
+      const nextHost = normalizeHostCountry(nextFixture?.hostCountry || "");
+      return hosts.map((host) => {
+        const isNext = nextHost === host;
+        return `
+          <div class="host-chip ${isNext ? "is-next" : ""}" ${isNext ? `title="Next match host${nextFixture?.venueName ? `: ${escapeHtml(nextFixture.venueName)}` : ""}"` : ""}>
+            <em>${escapeHtml(host)}</em>
+            ${isNext ? `<i class="host-ball" aria-label="Next match host">⚽</i>` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderHeroMetrics() {
+      const totalTeams = state.teams.length || 48;
+      const activeTeams = state.teams.length ? state.teams.filter((team) => !team.eliminated).length : totalTeams;
+      const totalMatches = state.fixtures.length || 104;
+      const remainingMatches = state.fixtures.length ? state.fixtures.filter((fixture) => !fixture.completed).length : totalMatches;
+      const next = getNextFixture();
+
+      els.teamMetricValue.textContent = `${activeTeams}/${totalTeams}`;
+      els.stageMetricValue.textContent = getCurrentStage();
+      els.matchMetricValue.textContent = `${remainingMatches}/${totalMatches}`;
+      els.hostMetricValue.innerHTML = renderHostNations(next);
+    }
+
     function renderAll() {
       const stamp = state.loadedAt ? state.loadedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "now";
       const syncText = state.usingFallback ? `Fallback snapshot · ${stamp}` : `Live synced · ${stamp}`;
       setSync(syncText);
+      renderHeroMetrics();
       renderMarquee();
       renderFixtures();
       renderMatchSpotlight(getNextFixture());
